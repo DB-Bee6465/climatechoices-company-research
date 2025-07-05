@@ -383,7 +383,12 @@ export default async function handler(req, res) {
             }
           },
           research_status: 'success',
-          search_method: websiteUrl ? 'provided_url' : 'web_search'
+          search_method: websiteUrl ? 'provided_url' : 'web_search',
+          debug_info: {
+            api_version: API_VERSION,
+            target_url: targetUrl,
+            company_name_clean: companyName.toLowerCase().trim()
+          }
         }
       } catch (financialError) {
         console.error('Error extracting financial data:', financialError.message)
@@ -398,7 +403,12 @@ export default async function handler(req, res) {
           },
           research_status: 'partial_success',
           message: 'Website accessed but financial data extraction failed',
-          search_method: websiteUrl ? 'provided_url' : 'web_search'
+          search_method: websiteUrl ? 'provided_url' : 'web_search',
+          debug_info: {
+            api_version: API_VERSION,
+            target_url: targetUrl,
+            company_name_clean: companyName.toLowerCase().trim()
+          }
         }
       }
     } else {
@@ -428,7 +438,13 @@ export default async function handler(req, res) {
           'Ensure the company has an online presence',
           'Some websites block automated requests - this is normal'
         ],
-        search_method: websiteUrl ? 'provided_url' : 'web_search'
+        search_method: websiteUrl ? 'provided_url' : 'web_search',
+        debug_info: {
+          api_version: API_VERSION,
+          target_url: targetUrl,
+          company_name_clean: companyName.toLowerCase().trim(),
+          website_error: websiteData ? websiteData.error : 'Unknown error'
+        }
       }
     }
 
