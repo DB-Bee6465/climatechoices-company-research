@@ -151,7 +151,7 @@ const rateLimitMap = new Map()
 function rateLimit(ip) {
   const now = Date.now()
   const windowMs = 60 * 60 * 1000 // 1 hour
-  const maxRequests = 5
+  const maxRequests = 20 // Increased from 5 to 20 for testing
 
   if (!rateLimitMap.has(ip)) {
     rateLimitMap.set(ip, { count: 1, resetTime: now + windowMs })
