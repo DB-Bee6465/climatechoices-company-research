@@ -1,6 +1,10 @@
 import axios from 'axios'
 import * as cheerio from 'cheerio'
 
+// API Version for debugging
+const API_VERSION = '2.1.0'
+console.log(`Company Research API v${API_VERSION} loaded`)
+
 // Simple rate limiting (in production, use Redis or database)
 const rateLimitMap = new Map()
 
@@ -32,7 +36,7 @@ function rateLimit(ip) {
 
 // Simplified web search using multiple strategies
 async function findCompanyWebsite(companyName) {
-  console.log(`Finding website for: ${companyName}`)
+  console.log(`[DEBUG] Finding website for: "${companyName}"`)
   
   // Enhanced known companies database with more variations
   const knownCompanies = {
@@ -78,34 +82,40 @@ async function findCompanyWebsite(companyName) {
   }
   
   const cleanName = companyName.toLowerCase().trim()
+  console.log(`[DEBUG] Clean name: "${cleanName}"`)
   
   // Direct match
   if (knownCompanies[cleanName]) {
-    console.log(`Direct match found for: ${companyName}`)
+    console.log(`[DEBUG] Direct match found for: ${companyName} -> ${knownCompanies[cleanName]}`)
     return knownCompanies[cleanName]
   }
   
   // Partial match
   for (const [key, url] of Object.entries(knownCompanies)) {
     if (cleanName.includes(key) || key.includes(cleanName)) {
-      console.log(`Partial match found: ${key} for ${companyName}`)
+      console.log(`[DEBUG] Partial match found: "${key}" for "${companyName}" -> ${url}`)
       return url
     }
   }
   
+  console.log(`[DEBUG] No database match found, trying intelligent URL construction`)
+  
   // Try intelligent URL construction
   const intelligentUrl = await constructIntelligentUrl(companyName)
   if (intelligentUrl) {
+    console.log(`[DEBUG] Intelligent URL found: ${intelligentUrl}`)
     return intelligentUrl
   }
   
   // Final fallback
-  console.log(`Using fallback URL construction for: ${companyName}`)
+  console.log(`[DEBUG] Using fallback URL construction for: ${companyName}`)
   const simpleName = cleanName
     .replace(/\s+/g, '')
     .replace(/[^a-z0-9]/g, '')
   
-  return `https://www.${simpleName}.com.au`
+  const fallbackUrl = `https://www.${simpleName}.com.au`
+  console.log(`[DEBUG] Fallback URL: ${fallbackUrl}`)
+  return fallbackUrl
 }
 
 // Intelligent URL construction based on company name patterns
@@ -338,6 +348,7 @@ export default async function handler(req, res) {
     const results = {
       company_name: companyName.trim(),
       timestamp: new Date().toISOString(),
+      api_version: API_VERSION,
       data: {}
     }
 
