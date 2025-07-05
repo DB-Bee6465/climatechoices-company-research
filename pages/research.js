@@ -239,14 +239,23 @@ export default function Research() {
                     <ul className="space-y-2">
                       {results.data.website.financial_links.map((link, index) => (
                         <li key={index} className="flex items-start space-x-2">
-                          <div className="flex-shrink-0 mt-1">
+                          <div className="flex-shrink-0 mt-1 space-x-1">
                             {link.is_pdf ? (
                               <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-red-100 text-red-800">
                                 PDF
                               </span>
+                            ) : link.is_document ? (
+                              <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-orange-100 text-orange-800">
+                                DOC
+                              </span>
                             ) : (
                               <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
                                 WEB
+                              </span>
+                            )}
+                            {link.priority >= 8 && (
+                              <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                                HIGH
                               </span>
                             )}
                           </div>
@@ -260,8 +269,9 @@ export default function Research() {
                               {link.text || 'Financial Resource'}
                             </a>
                             <p className="text-xs text-gray-500 mt-1">
-                              Type: {link.type.replace('_', ' ')} • 
-                              <span className="ml-1">{link.url}</span>
+                              Type: {link.type.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())} • 
+                              Priority: {link.priority || 'N/A'} •
+                              <span className="ml-1 break-all">{link.url}</span>
                             </p>
                           </div>
                         </li>

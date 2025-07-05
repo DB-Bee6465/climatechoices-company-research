@@ -2,7 +2,7 @@ import axios from 'axios'
 import * as cheerio from 'cheerio'
 
 // API Version for debugging
-const API_VERSION = '2.2.0' // Updated for enhanced crawling
+const API_VERSION = '2.3.0' // Updated for enhanced keyword detection
 console.log(`Company Research API v${API_VERSION} loaded`)
 
 // Anti-detection configuration
@@ -29,10 +29,23 @@ const CRAWL_CONFIG = {
 
 // Financial page keywords for intelligent navigation
 const FINANCIAL_KEYWORDS = [
+  // Direct financial terms
   'investor relations', 'annual report', 'financial information', 
   'financial statements', 'corporate governance', 'investor',
   'annual-report', 'financials', 'reports', 'sec-filings',
-  'investor-relations', 'about-us', 'corporate-information'
+  'investor-relations', 'financial-info',
+  
+  // Broader categories that often contain financial info
+  'about us', 'about-us', 'about', 'company-info',
+  'downloads', 'download', 'resources',
+  'reporting', 'reports', 'corporate-reports',
+  'publications', 'documents', 'media-centre',
+  'news-and-reports', 'corporate-information',
+  
+  // Specific report types
+  'sustainability report', 'esg report', 'corporate-responsibility',
+  'quarterly-results', 'half-year', 'full-year',
+  'earnings', 'results', 'performance'
 ]
 
 // Function to find financial-related links on a page
@@ -62,37 +75,67 @@ function findFinancialLinks($, baseUrl) {
     )
     
     if (isFinancialLink) {
-      // Determine link type
+      // Determine link type with more specific categorization
       let linkType = 'general'
+      
       if (combinedText.includes('annual report') || combinedText.includes('annual-report')) {
         linkType = 'annual_report'
-      } else if (combinedText.includes('investor')) {
+      } else if (combinedText.includes('investor') && !combinedText.includes('individual')) {
         linkType = 'investor_relations'
-      } else if (combinedText.includes('financial')) {
+      } else if (combinedText.includes('financial') || combinedText.includes('earnings') || combinedText.includes('results')) {
         linkType = 'financial_info'
-      } else if (combinedText.includes('about')) {
-        linkType = 'about_us'
+      } else if (combinedText.includes('about') || combinedText.includes('company')) {
+        linkType = 'about_company'
+      } else if (combinedText.includes('download') || combinedText.includes('resources') || combinedText.includes('documents')) {
+        linkType = 'downloads'
+      } else if (combinedText.includes('report') || combinedText.includes('reporting')) {
+        linkType = 'reports'
+      } else if (combinedText.includes('sustainability') || combinedText.includes('esg') || combinedText.includes('responsibility')) {
+        linkType = 'sustainability'
+      } else if (combinedText.includes('governance')) {
+        linkType = 'governance'
       }
       
-      // Check if it's a PDF
+      // Check if it's a PDF or other document format
       const isPdf = href.toLowerCase().includes('.pdf') || combinedText.includes('pdf')
+      const isDoc = href.toLowerCase().match(/\.(doc|docx|xls|xlsx|ppt|pptx)/) || combinedText.match(/(doc|excel|powerpoint)/i)
+      
+      // Priority scoring - prioritize more relevant links
+      let priority = 1
+      if (linkType === 'annual_report') priority = 10
+      else if (linkType === 'investor_relations') priority = 9
+      else if (linkType === 'financial_info') priority = 8
+      else if (linkType === 'reports') priority = 7
+      else if (linkType === 'downloads') priority = 6
+      else if (linkType === 'about_company') priority = 5
+      
+      // Boost priority for PDFs (likely to contain detailed financial data)
+      if (isPdf) priority += 2
       
       financialLinks.push({
         url: fullUrl,
         text: linkText,
         type: linkType,
         is_pdf: isPdf,
-        title: title || null
+        is_document: isPdf || isDoc,
+        title: title || null,
+        priority: priority
       })
     }
   })
   
-  // Remove duplicates and limit results
+  // Remove duplicates and sort by priority
   const uniqueLinks = financialLinks.filter((link, index, self) => 
     index === self.findIndex(l => l.url === link.url)
   )
   
-  return uniqueLinks.slice(0, 10) // Limit to 10 most relevant links
+  // Sort by priority (highest first) then by type
+  uniqueLinks.sort((a, b) => {
+    if (a.priority !== b.priority) return b.priority - a.priority
+    return a.type.localeCompare(b.type)
+  })
+  
+  return uniqueLinks.slice(0, 15) // Increased limit to 15 most relevant links
 }
 
 // Utility function for random delays
