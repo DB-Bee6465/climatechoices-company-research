@@ -182,18 +182,19 @@ async function scrapeWebsite(url) {
     console.log(`Attempting to scrape: ${url}`)
     
     const response = await axios.get(url, {
-      timeout: 15000, // Increased timeout
+      timeout: 10000, // Reduced from 15000 to 10000
       headers: {
         'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
         'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
         'Accept-Language': 'en-US,en;q=0.5',
         'Accept-Encoding': 'gzip, deflate',
         'Connection': 'keep-alive',
-        'Upgrade-Insecure-Requests': '1'
+        'Upgrade-Insecure-Requests': '1',
+        'Cache-Control': 'no-cache'
       },
-      maxRedirects: 5,
+      maxRedirects: 3, // Reduced from 5
       validateStatus: function (status) {
-        return status >= 200 && status < 400; // Accept redirects
+        return status >= 200 && status < 400;
       }
     })
 
@@ -227,22 +228,40 @@ async function scrapeWebsite(url) {
       title,
       description: description.trim(),
       contact_info: {
-        emails: emails.slice(0, 3), // Limit to 3
-        phones: phones.slice(0, 3)  // Limit to 3
+        emails: emails.slice(0, 3),
+        phones: phones.slice(0, 3)
       },
       status: 'success'
     }
   } catch (error) {
     console.error(`Error scraping website ${url}:`, error.message)
     
-    // Return more detailed error information
+    // Provide more helpful error messages
+    let errorMessage = error.message
+    let suggestions = [
+      'Try providing the exact website URL',
+      'Check if the company name is spelled correctly',
+      'Some websites block automated requests - this is normal'
+    ]
+    
+    if (error.code === 'ECONNABORTED' || error.message.includes('timeout')) {
+      errorMessage = 'Website took too long to respond (likely has anti-bot protection)'
+      suggestions = [
+        'Large corporate websites often block automated requests',
+        'Try visiting the website manually to verify it exists',
+        'This is normal for companies like BHP, Rio Tinto, etc.',
+        'The company detection is still working correctly'
+      ]
+    }
+    
     return {
       url,
       title: 'Website not accessible',
-      description: `Could not access website: ${error.message}`,
+      description: `Could not access website: ${errorMessage}`,
       contact_info: { emails: [], phones: [] },
       status: 'error',
-      error: error.message
+      error: errorMessage,
+      suggestions
     }
   }
 }
