@@ -50,10 +50,13 @@ export default function Home() {
             <div className="flex rounded-md shadow-sm">
               <input
                 type="text"
+                id="homeCompanyName"
+                name="companyName"
                 value={companyName}
                 onChange={(e) => setCompanyName(e.target.value)}
                 placeholder="Enter company name (e.g., Australian Military Bank)"
                 className="flex-1 min-w-0 block w-full px-3 py-2 rounded-l-md border border-gray-300 focus:ring-blue-500 focus:border-blue-500"
+                autoComplete="organization"
               />
               <Link
                 href={`/research?company=${encodeURIComponent(companyName)}`}
