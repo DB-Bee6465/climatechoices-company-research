@@ -1,9 +1,15 @@
 import Head from 'next/head'
 import Link from 'next/link'
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 
 export default function Home() {
   const [companyName, setCompanyName] = useState('')
+  const [hostname, setHostname] = useState('Loading...')
+
+  useEffect(() => {
+    // Set hostname on client side to avoid hydration mismatch
+    setHostname(window.location.hostname)
+  }, [])
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100">
@@ -177,7 +183,7 @@ export default function Home() {
               <div className="font-semibold">ClimateChoices Company Research Tool</div>
               <div className="space-y-1 text-xs">
                 <div>Frontend: v1.3.0 | Build: {new Date().toISOString().split('T')[0]}</div>
-                <div>Deployment URL: {typeof window !== 'undefined' ? window.location.hostname : 'Loading...'}</div>
+                <div>Deployment URL: {hostname}</div>
                 <div>Last Updated: {new Date().toLocaleString()}</div>
               </div>
             </div>

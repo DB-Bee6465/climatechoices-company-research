@@ -9,13 +9,18 @@ export default function Research() {
   const [loading, setLoading] = useState(false)
   const [results, setResults] = useState(null)
   const [error, setError] = useState(null)
+  const [hostname, setHostname] = useState('Loading...')
 
   // Get company name from URL params
   useEffect(() => {
-    const urlParams = new URLSearchParams(window.location.search)
-    const company = urlParams.get('company')
-    if (company) {
-      setCompanyName(company)
+    if (typeof window !== 'undefined') {
+      const urlParams = new URLSearchParams(window.location.search)
+      const company = urlParams.get('company')
+      if (company) {
+        setCompanyName(company)
+      }
+      // Set hostname to avoid hydration mismatch
+      setHostname(window.location.hostname)
     }
   }, [])
 
@@ -272,7 +277,7 @@ export default function Research() {
             <div className="font-semibold">ClimateChoices Company Research Tool</div>
             <div className="space-y-1 text-xs">
               <div>Frontend: v1.3.0 | Build: {new Date().toISOString().split('T')[0]}</div>
-              <div>Deployment URL: {typeof window !== 'undefined' ? window.location.hostname : 'Loading...'}</div>
+              <div>Deployment URL: {hostname}</div>
               <div>Last Updated: {new Date().toLocaleString()}</div>
             </div>
           </div>
