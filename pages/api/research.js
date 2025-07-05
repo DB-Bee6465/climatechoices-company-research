@@ -2,8 +2,105 @@ import axios from 'axios'
 import * as cheerio from 'cheerio'
 
 // API Version for debugging
-const API_VERSION = '2.1.0'
+const API_VERSION = '2.2.0' // Updated for enhanced crawling
 console.log(`Company Research API v${API_VERSION} loaded`)
+
+// Anti-detection configuration
+const CRAWL_CONFIG = {
+  delays: {
+    betweenRequests: 2000, // 2 seconds between requests
+    randomVariation: 1000,  // +/- 1 second random variation
+  },
+  headers: {
+    'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+    'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8',
+    'Accept-Language': 'en-US,en;q=0.9',
+    'Accept-Encoding': 'gzip, deflate, br',
+    'Connection': 'keep-alive',
+    'Upgrade-Insecure-Requests': '1',
+    'Sec-Fetch-Dest': 'document',
+    'Sec-Fetch-Mode': 'navigate',
+    'Sec-Fetch-Site': 'none',
+    'Cache-Control': 'max-age=0'
+  },
+  timeout: 8000,
+  maxRedirects: 3
+}
+
+// Financial page keywords for intelligent navigation
+const FINANCIAL_KEYWORDS = [
+  'investor relations', 'annual report', 'financial information', 
+  'financial statements', 'corporate governance', 'investor',
+  'annual-report', 'financials', 'reports', 'sec-filings',
+  'investor-relations', 'about-us', 'corporate-information'
+]
+
+// Function to find financial-related links on a page
+function findFinancialLinks($, baseUrl) {
+  const financialLinks = []
+  
+  // Find all links on the page
+  $('a[href]').each((i, element) => {
+    const href = $(element).attr('href')
+    const linkText = $(element).text().toLowerCase().trim()
+    const title = $(element).attr('title')?.toLowerCase() || ''
+    
+    if (!href) return
+    
+    // Convert relative URLs to absolute
+    let fullUrl
+    try {
+      fullUrl = new URL(href, baseUrl).toString()
+    } catch (e) {
+      return // Skip invalid URLs
+    }
+    
+    // Check if link text or URL contains financial keywords
+    const combinedText = `${linkText} ${title} ${href.toLowerCase()}`
+    const isFinancialLink = FINANCIAL_KEYWORDS.some(keyword => 
+      combinedText.includes(keyword)
+    )
+    
+    if (isFinancialLink) {
+      // Determine link type
+      let linkType = 'general'
+      if (combinedText.includes('annual report') || combinedText.includes('annual-report')) {
+        linkType = 'annual_report'
+      } else if (combinedText.includes('investor')) {
+        linkType = 'investor_relations'
+      } else if (combinedText.includes('financial')) {
+        linkType = 'financial_info'
+      } else if (combinedText.includes('about')) {
+        linkType = 'about_us'
+      }
+      
+      // Check if it's a PDF
+      const isPdf = href.toLowerCase().includes('.pdf') || combinedText.includes('pdf')
+      
+      financialLinks.push({
+        url: fullUrl,
+        text: linkText,
+        type: linkType,
+        is_pdf: isPdf,
+        title: title || null
+      })
+    }
+  })
+  
+  // Remove duplicates and limit results
+  const uniqueLinks = financialLinks.filter((link, index, self) => 
+    index === self.findIndex(l => l.url === link.url)
+  )
+  
+  return uniqueLinks.slice(0, 10) // Limit to 10 most relevant links
+}
+
+// Utility function for random delays
+function randomDelay(baseMs = CRAWL_CONFIG.delays.betweenRequests) {
+  const variation = Math.random() * CRAWL_CONFIG.delays.randomVariation
+  const delay = baseMs + (Math.random() > 0.5 ? variation : -variation)
+  return new Promise(resolve => setTimeout(resolve, Math.max(1000, delay)))
+}
 
 // Simple rate limiting (in production, use Redis or database)
 const rateLimitMap = new Map()
@@ -179,26 +276,21 @@ async function quickUrlCheck(url) {
 
 async function scrapeWebsite(url) {
   try {
-    console.log(`Attempting to scrape: ${url}`)
+    console.log(`[CRAWL] Starting scrape: ${url}`)
+    
+    // Add random delay before request
+    await randomDelay()
     
     const response = await axios.get(url, {
-      timeout: 10000, // Reduced from 15000 to 10000
-      headers: {
-        'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
-        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
-        'Accept-Language': 'en-US,en;q=0.5',
-        'Accept-Encoding': 'gzip, deflate',
-        'Connection': 'keep-alive',
-        'Upgrade-Insecure-Requests': '1',
-        'Cache-Control': 'no-cache'
-      },
-      maxRedirects: 3, // Reduced from 5
+      timeout: CRAWL_CONFIG.timeout,
+      headers: CRAWL_CONFIG.headers,
+      maxRedirects: CRAWL_CONFIG.maxRedirects,
       validateStatus: function (status) {
         return status >= 200 && status < 400;
       }
     })
 
-    console.log(`Successfully fetched ${url}, status: ${response.status}`)
+    console.log(`[CRAWL] Successfully fetched ${url}, status: ${response.status}`)
 
     const $ = cheerio.load(response.data)
     
@@ -221,7 +313,10 @@ async function scrapeWebsite(url) {
     const phoneRegex = /(?:\+61\s?|0)[2-9]\d{8}|\b1[38]\d{2}\s?\d{2}\s?\d{2}\s?\d{2}\b|\(\d{2}\)\s?\d{4}\s?\d{4}/g
     const phones = [...new Set(response.data.match(phoneRegex) || [])]
 
-    console.log(`Extracted data from ${url}: title="${title}", emails=${emails.length}, phones=${phones.length}`)
+    // NEW: Find financial-related links
+    const financialLinks = findFinancialLinks($, url)
+
+    console.log(`[CRAWL] Extracted from ${url}: title="${title}", emails=${emails.length}, phones=${phones.length}, financial_links=${financialLinks.length}`)
 
     return {
       url,
@@ -231,10 +326,11 @@ async function scrapeWebsite(url) {
         emails: emails.slice(0, 3),
         phones: phones.slice(0, 3)
       },
+      financial_links: financialLinks,
       status: 'success'
     }
   } catch (error) {
-    console.error(`Error scraping website ${url}:`, error.message)
+    console.error(`[CRAWL] Error scraping website ${url}:`, error.message)
     
     // Provide more helpful error messages
     let errorMessage = error.message
@@ -259,6 +355,7 @@ async function scrapeWebsite(url) {
       title: 'Website not accessible',
       description: `Could not access website: ${errorMessage}`,
       contact_info: { emails: [], phones: [] },
+      financial_links: [],
       status: 'error',
       error: errorMessage,
       suggestions
