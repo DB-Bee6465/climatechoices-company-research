@@ -240,6 +240,18 @@ export default function Research() {
                 </div>
               </div>
 
+              {/* Debug Information - Temporary for troubleshooting */}
+              <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 mb-4">
+                <h4 className="text-sm font-semibold text-yellow-800 mb-2">Debug Info (Temporary)</h4>
+                <div className="text-xs text-yellow-700 space-y-1">
+                  <div>Results object keys: {results ? Object.keys(results).join(', ') : 'No results'}</div>
+                  <div>API Version from root: {results?.api_version || 'Not found'}</div>
+                  <div>API Version from debug: {results?.data?.debug_info?.api_version || 'Not found'}</div>
+                  <div>Research Status: {results?.data?.research_status || 'Not found'}</div>
+                  <div>Search Method: {results?.data?.search_method || 'Not found'}</div>
+                </div>
+              </div>
+
               {/* Timestamp and Version Info */}
               <div className="text-sm text-gray-500 text-center pt-4 border-t space-y-1">
                 <div>Research completed: {new Date(results.timestamp).toLocaleString()}</div>
@@ -262,11 +274,15 @@ export default function Research() {
       </main>
       
       {/* Footer with Version Info */}
-      <footer className="bg-gray-50 border-t mt-8">
-        <div className="max-w-7xl mx-auto py-4 px-4 sm:px-6 lg:px-8">
-          <div className="text-center text-xs text-gray-500 space-y-1">
-            <div>ClimateChoices Company Research Tool</div>
-            <div>Frontend: v1.2.0 | Deployment: {new Date().toISOString().split('T')[0]}</div>
+      <footer className="bg-gray-100 border-t mt-8">
+        <div className="max-w-7xl mx-auto py-6 px-4 sm:px-6 lg:px-8">
+          <div className="text-center text-sm text-gray-600 space-y-2">
+            <div className="font-semibold">ClimateChoices Company Research Tool</div>
+            <div className="space-y-1 text-xs">
+              <div>Frontend: v1.3.0 | Build: {new Date().toISOString().split('T')[0]}</div>
+              <div>Deployment URL: {typeof window !== 'undefined' ? window.location.hostname : 'Loading...'}</div>
+              <div>Last Updated: {new Date().toLocaleString()}</div>
+            </div>
           </div>
         </div>
       </footer>
