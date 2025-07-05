@@ -228,6 +228,49 @@ export default function Research() {
                 </div>
               )}
 
+              {/* Financial Links */}
+              {results.data?.website?.financial_links && results.data.website.financial_links.length > 0 && (
+                <div>
+                  <h3 className="text-lg font-semibold text-gray-900 mb-3">Financial Resources Found</h3>
+                  <div className="bg-blue-50 rounded-lg p-4">
+                    <p className="text-sm text-blue-800 mb-3">
+                      Found {results.data.website.financial_links.length} financial-related link(s) on the company website:
+                    </p>
+                    <ul className="space-y-2">
+                      {results.data.website.financial_links.map((link, index) => (
+                        <li key={index} className="flex items-start space-x-2">
+                          <div className="flex-shrink-0 mt-1">
+                            {link.is_pdf ? (
+                              <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-red-100 text-red-800">
+                                PDF
+                              </span>
+                            ) : (
+                              <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                                WEB
+                              </span>
+                            )}
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <a 
+                              href={link.url} 
+                              target="_blank" 
+                              rel="noopener noreferrer" 
+                              className="text-blue-600 hover:underline text-sm font-medium"
+                            >
+                              {link.text || 'Financial Resource'}
+                            </a>
+                            <p className="text-xs text-gray-500 mt-1">
+                              Type: {link.type.replace('_', ' ')} • 
+                              <span className="ml-1">{link.url}</span>
+                            </p>
+                          </div>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                </div>
+              )}
+
               {/* Data Sources */}
               <div>
                 <h3 className="text-lg font-semibold text-gray-900 mb-3">Data Sources</h3>
