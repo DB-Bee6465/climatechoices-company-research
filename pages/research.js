@@ -240,18 +240,6 @@ export default function Research() {
                 </div>
               </div>
 
-              {/* Debug Information - Temporary for troubleshooting */}
-              <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 mb-4">
-                <h4 className="text-sm font-semibold text-yellow-800 mb-2">Debug Info (Temporary)</h4>
-                <div className="text-xs text-yellow-700 space-y-1">
-                  <div>Results object keys: {results ? Object.keys(results).join(', ') : 'No results'}</div>
-                  <div>API Version from root: {results?.api_version || 'Not found'}</div>
-                  <div>API Version from debug: {results?.data?.debug_info?.api_version || 'Not found'}</div>
-                  <div>Research Status: {results?.data?.research_status || 'Not found'}</div>
-                  <div>Search Method: {results?.data?.search_method || 'Not found'}</div>
-                </div>
-              </div>
-
               {/* Timestamp and Version Info */}
               <div className="text-sm text-gray-500 text-center pt-4 border-t space-y-1">
                 <div>Research completed: {new Date(results.timestamp).toLocaleString()}</div>
