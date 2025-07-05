@@ -81,10 +81,12 @@ export default function Research() {
               <input
                 type="text"
                 id="companyName"
+                name="companyName"
                 value={companyName}
                 onChange={(e) => setCompanyName(e.target.value)}
                 placeholder="e.g., Australian Military Bank"
                 className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                autoComplete="organization"
                 required
               />
             </div>
@@ -96,10 +98,12 @@ export default function Research() {
               <input
                 type="url"
                 id="websiteUrl"
+                name="websiteUrl"
                 value={websiteUrl}
                 onChange={(e) => setWebsiteUrl(e.target.value)}
                 placeholder="https://www.company.com.au"
                 className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                autoComplete="url"
               />
               <p className="mt-1 text-sm text-gray-500">
                 If not provided, we'll try to find the company's website automatically
