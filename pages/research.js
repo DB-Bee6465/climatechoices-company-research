@@ -240,14 +240,36 @@ export default function Research() {
                 </div>
               </div>
 
-              {/* Timestamp */}
-              <div className="text-sm text-gray-500 text-center pt-4 border-t">
-                Research completed: {new Date(results.timestamp).toLocaleString()}
+              {/* Timestamp and Version Info */}
+              <div className="text-sm text-gray-500 text-center pt-4 border-t space-y-1">
+                <div>Research completed: {new Date(results.timestamp).toLocaleString()}</div>
+                {results.api_version && (
+                  <div>API Version: {results.api_version}</div>
+                )}
+                {results.data?.debug_info?.api_version && (
+                  <div>Debug API Version: {results.data.debug_info.api_version}</div>
+                )}
+                {results.data?.research_status && (
+                  <div>Status: {results.data.research_status}</div>
+                )}
+                {results.data?.search_method && (
+                  <div>Search Method: {results.data.search_method}</div>
+                )}
               </div>
             </div>
           </div>
         )}
       </main>
+      
+      {/* Footer with Version Info */}
+      <footer className="bg-gray-50 border-t mt-8">
+        <div className="max-w-7xl mx-auto py-4 px-4 sm:px-6 lg:px-8">
+          <div className="text-center text-xs text-gray-500 space-y-1">
+            <div>ClimateChoices Company Research Tool</div>
+            <div>Frontend: v1.2.0 | Deployment: {new Date().toISOString().split('T')[0]}</div>
+          </div>
+        </div>
+      </footer>
     </div>
   )
 }
