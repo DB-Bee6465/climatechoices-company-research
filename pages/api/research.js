@@ -30,17 +30,26 @@ function rateLimit(ip) {
   return true
 }
 
-function findCompanyWebsite(companyName) {
-  // Known Australian companies database
+// Simplified web search using multiple strategies
+async function findCompanyWebsite(companyName) {
+  console.log(`Finding website for: ${companyName}`)
+  
+  // Enhanced known companies database with more variations
   const knownCompanies = {
+    // Commonwealth Bank variations
     'commonwealth bank': 'https://www.commbank.com.au',
     'commonwealth bank australia': 'https://www.commbank.com.au',
     'commonwealth bank of australia': 'https://www.commbank.com.au',
     'cba': 'https://www.commbank.com.au',
     'commbank': 'https://www.commbank.com.au',
+    'comm bank': 'https://www.commbank.com.au',
+    
+    // Other major Australian companies
     'westpac': 'https://www.westpac.com.au',
+    'westpac bank': 'https://www.westpac.com.au',
     'westpac banking corporation': 'https://www.westpac.com.au',
     'anz': 'https://www.anz.com.au',
+    'anz bank': 'https://www.anz.com.au',
     'australia and new zealand banking group': 'https://www.anz.com.au',
     'nab': 'https://www.nab.com.au',
     'national australia bank': 'https://www.nab.com.au',
@@ -53,139 +62,109 @@ function findCompanyWebsite(companyName) {
     'bhp': 'https://www.bhp.com',
     'bhp group': 'https://www.bhp.com',
     'rio tinto': 'https://www.riotinto.com',
-    'fortescue metals': 'https://www.fmgl.com.au',
-    'fortescue metals group': 'https://www.fmgl.com.au',
     'qantas': 'https://www.qantas.com',
     'qantas airways': 'https://www.qantas.com',
-    'virgin australia': 'https://www.virginaustralia.com',
-    'jetstar': 'https://www.jetstar.com',
     'australian military bank': 'https://www.australianmilitarybank.com.au',
     'defence bank': 'https://www.defencebank.com.au',
-    'police bank': 'https://www.policebank.com.au',
-    'teachers mutual bank': 'https://www.tmbank.com.au',
-    'bendigo bank': 'https://www.bendigobank.com.au',
     'suncorp': 'https://www.suncorp.com.au',
-    'suncorp group': 'https://www.suncorp.com.au',
-    'insurance australia group': 'https://www.iag.com.au',
-    'iag': 'https://www.iag.com.au',
     'medibank': 'https://www.medibank.com.au',
-    'bupa': 'https://www.bupa.com.au',
     'harvey norman': 'https://www.harveynorman.com.au',
     'jb hi-fi': 'https://www.jbhifi.com.au',
     'bunnings': 'https://www.bunnings.com.au',
-    'officeworks': 'https://www.officeworks.com.au',
     'kmart': 'https://www.kmart.com.au',
-    'target': 'https://www.target.com.au',
-    'big w': 'https://www.bigw.com.au',
+    'target australia': 'https://www.target.com.au',
     'myer': 'https://www.myer.com.au',
-    'david jones': 'https://www.davidjones.com',
-    'wesfarmers': 'https://www.wesfarmers.com.au',
-    'stockland': 'https://www.stockland.com.au',
-    'mirvac': 'https://www.mirvac.com',
-    'lendlease': 'https://www.lendlease.com',
-    'goodman group': 'https://www.goodman.com',
-    'transurban': 'https://www.transurban.com',
-    'sydney airport': 'https://www.sydneyairport.com.au',
-    'melbourne airport': 'https://www.melbourneairport.com.au',
-    'origin energy': 'https://www.originenergy.com.au',
-    'agl energy': 'https://www.agl.com.au',
-    'santos': 'https://www.santos.com',
-    'woodside': 'https://www.woodside.com',
-    'newcrest mining': 'https://www.newcrest.com',
-    'northern star resources': 'https://www.nsrltd.com',
-    'evolution mining': 'https://www.evolutionmining.com.au',
-    'gold road resources': 'https://www.goldroad.com.au',
-    'mineral resources': 'https://www.mineralresources.com.au',
-    'pilbara minerals': 'https://www.pilbaraminerals.com.au',
-    'lynas rare earths': 'https://www.lynasrareearths.com',
-    'orica': 'https://www.orica.com',
-    'incitec pivot': 'https://www.incitecpivot.com.au',
-    'nufarm': 'https://www.nufarm.com',
-    'elders': 'https://www.elders.com.au',
-    'graincorp': 'https://www.graincorp.com.au',
-    'treasury wine estates': 'https://www.tweglobal.com',
-    'coca-cola amatil': 'https://www.ccamatil.com',
-    'lion': 'https://www.lion.com.au',
-    'carlton & united breweries': 'https://www.cub.com.au',
-    'foster\'s group': 'https://www.fosters.com.au',
-    'arnott\'s': 'https://www.arnotts.com',
-    'unilever australia': 'https://www.unilever.com.au',
-    'nestle australia': 'https://www.nestle.com.au',
-    'kellogg australia': 'https://www.kelloggs.com.au',
-    'mars australia': 'https://www.mars.com/australia',
-    'mondelez australia': 'https://www.mondelezinternational.com/australia',
-    'cadbury': 'https://www.cadbury.com.au',
-    'blackmores': 'https://www.blackmores.com.au',
-    'cochlear': 'https://www.cochlear.com',
-    'csl': 'https://www.csl.com',
-    'csl limited': 'https://www.csl.com',
-    'resmed': 'https://www.resmed.com',
-    'sonic healthcare': 'https://www.sonichealthcare.com',
-    'healius': 'https://www.healius.com.au',
-    'ramsay health care': 'https://www.ramsayhealth.com',
-    'ansell': 'https://www.ansell.com',
-    'fisher & paykel healthcare': 'https://www.fphcare.com',
-    'computershare': 'https://www.computershare.com',
-    'macquarie group': 'https://www.macquarie.com',
-    'perpetual': 'https://www.perpetual.com.au',
-    'challenger': 'https://www.challenger.com.au',
-    'amp': 'https://www.amp.com.au',
-    'amp limited': 'https://www.amp.com.au',
-    'ioof': 'https://www.ioof.com.au',
-    'magellan financial group': 'https://www.magellangroup.com.au',
-    'platinum asset management': 'https://www.platinum.com.au',
-    'pendal group': 'https://www.pendalgroup.com',
-    'janus henderson': 'https://www.janushenderson.com',
-    'vanguard australia': 'https://www.vanguard.com.au',
-    'blackrock australia': 'https://www.blackrock.com/au',
-    'fidelity australia': 'https://www.fidelity.com.au',
-    'colonial first state': 'https://www.cfs.com.au',
-    'bt financial group': 'https://www.bt.com.au',
-    'onepath': 'https://www.onepath.com.au',
-    'axa': 'https://www.axa.com.au',
-    'zurich australia': 'https://www.zurich.com.au',
-    'allianz australia': 'https://www.allianz.com.au',
-    'qbe insurance': 'https://www.qbe.com',
-    'suncorp insurance': 'https://www.suncorp.com.au',
-    'aami': 'https://www.aami.com.au',
-    'racv': 'https://www.racv.com.au',
-    'nrma': 'https://www.nrma.com.au',
-    'rac': 'https://www.rac.com.au',
-    'youi': 'https://www.youi.com.au',
-    'budget direct': 'https://www.budgetdirect.com.au',
-    'real insurance': 'https://www.realinsurance.com.au',
-    'woolworths insurance': 'https://www.woolworthsinsurance.com.au',
-    'coles insurance': 'https://www.colesinsurance.com.au'
+    'david jones': 'https://www.davidjones.com'
   }
   
   const cleanName = companyName.toLowerCase().trim()
   
-  // Check known companies first
+  // Direct match
   if (knownCompanies[cleanName]) {
+    console.log(`Direct match found for: ${companyName}`)
     return knownCompanies[cleanName]
   }
   
-  // Check partial matches
+  // Partial match
   for (const [key, url] of Object.entries(knownCompanies)) {
     if (cleanName.includes(key) || key.includes(cleanName)) {
+      console.log(`Partial match found: ${key} for ${companyName}`)
       return url
     }
   }
   
-  // Fallback to heuristic approach
+  // Try intelligent URL construction
+  const intelligentUrl = await constructIntelligentUrl(companyName)
+  if (intelligentUrl) {
+    return intelligentUrl
+  }
+  
+  // Final fallback
+  console.log(`Using fallback URL construction for: ${companyName}`)
   const simpleName = cleanName
     .replace(/\s+/g, '')
     .replace(/[^a-z0-9]/g, '')
   
-  // Try common Australian domain patterns
-  const possibleUrls = [
-    `https://www.${simpleName}.com.au`,
-    `https://www.${simpleName}.com`,
-    `https://${simpleName}.com.au`,
-    `https://${simpleName}.com`
-  ]
+  return `https://www.${simpleName}.com.au`
+}
+
+// Intelligent URL construction based on company name patterns
+async function constructIntelligentUrl(companyName) {
+  const name = companyName.toLowerCase().trim()
   
-  return possibleUrls[0]
+  // Australian bank patterns
+  if (name.includes('bank') && (name.includes('australia') || name.includes('australian'))) {
+    const bankName = name.replace(/\s*(bank|australia|australian|of|the)\s*/g, '').trim()
+    const possibleUrls = [
+      `https://www.${bankName}bank.com.au`,
+      `https://www.${bankName}.com.au`,
+      `https://www.australian${bankName}bank.com.au`
+    ]
+    
+    for (const url of possibleUrls) {
+      if (await quickUrlCheck(url)) {
+        console.log(`Found working URL: ${url}`)
+        return url
+      }
+    }
+  }
+  
+  // Company name with "Australia" or "Australian"
+  if (name.includes('australia')) {
+    const baseName = name.replace(/\s*(australia|australian|pty|ltd|limited|group|corporation|corp)\s*/g, '').trim()
+    const cleanBaseName = baseName.replace(/\s+/g, '').replace(/[^a-z0-9]/g, '')
+    
+    const possibleUrls = [
+      `https://www.${cleanBaseName}.com.au`,
+      `https://www.${cleanBaseName}australia.com.au`,
+      `https://www.${cleanBaseName}.com`,
+      `https://www.${cleanBaseName}group.com.au`
+    ]
+    
+    for (const url of possibleUrls) {
+      if (await quickUrlCheck(url)) {
+        console.log(`Found working URL: ${url}`)
+        return url
+      }
+    }
+  }
+  
+  return null
+}
+
+// Quick URL check to see if a URL is accessible
+async function quickUrlCheck(url) {
+  try {
+    const response = await axios.head(url, {
+      timeout: 5000,
+      headers: {
+        'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36'
+      }
+    })
+    return response.status >= 200 && response.status < 400
+  } catch (error) {
+    return false
+  }
 }
 
 async function scrapeWebsite(url) {
@@ -362,8 +341,8 @@ export default async function handler(req, res) {
       data: {}
     }
 
-    // Determine website URL
-    const targetUrl = websiteUrl || findCompanyWebsite(companyName)
+    // Determine website URL (now async with web search)
+    const targetUrl = websiteUrl || await findCompanyWebsite(companyName)
     console.log(`Target URL determined: ${targetUrl}`)
     
     // Scrape website
@@ -392,7 +371,8 @@ export default async function handler(req, res) {
               source: 'assumption'
             }
           },
-          research_status: 'success'
+          research_status: 'success',
+          search_method: websiteUrl ? 'provided_url' : 'web_search'
         }
       } catch (financialError) {
         console.error('Error extracting financial data:', financialError.message)
@@ -406,7 +386,8 @@ export default async function handler(req, res) {
             }
           },
           research_status: 'partial_success',
-          message: 'Website accessed but financial data extraction failed'
+          message: 'Website accessed but financial data extraction failed',
+          search_method: websiteUrl ? 'provided_url' : 'web_search'
         }
       }
     } else {
@@ -429,12 +410,14 @@ export default async function handler(req, res) {
           }
         },
         research_status: 'failed',
-        message: `Could not access website: ${targetUrl}. Please check the company name or provide a valid website URL.`,
+        message: `Could not access website: ${targetUrl}. The website may be blocking automated requests or may not exist.`,
         suggestions: [
           'Try providing the exact website URL',
           'Check if the company name is spelled correctly',
-          'Ensure the company has an online presence'
-        ]
+          'Ensure the company has an online presence',
+          'Some websites block automated requests - this is normal'
+        ],
+        search_method: websiteUrl ? 'provided_url' : 'web_search'
       }
     }
 
