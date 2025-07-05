@@ -164,12 +164,20 @@ export default function Home() {
       </main>
 
       {/* Footer */}
-      <footer className="bg-white border-t border-gray-200 mt-20">
+      <footer className="bg-gray-100 border-t border-gray-200 mt-20">
         <div className="max-w-7xl mx-auto py-12 px-4 sm:px-6 lg:px-8">
-          <div className="text-center">
+          <div className="text-center space-y-4">
             <p className="text-gray-500">
               © 2024 Climate Choices. Built for Australian company research.
             </p>
+            <div className="text-sm text-gray-400 space-y-1">
+              <div className="font-semibold">ClimateChoices Company Research Tool</div>
+              <div className="space-y-1 text-xs">
+                <div>Frontend: v1.3.0 | Build: {new Date().toISOString().split('T')[0]}</div>
+                <div>Deployment URL: {typeof window !== 'undefined' ? window.location.hostname : 'Loading...'}</div>
+                <div>Last Updated: {new Date().toLocaleString()}</div>
+              </div>
+            </div>
           </div>
         </div>
       </footer>
