@@ -9,9 +9,11 @@
     "lint": "next lint"
   },
   "dependencies": {
+    "@google/generative-ai": "^0.2.1",
     "axios": "^1.6.0",
     "cheerio": "^1.0.0-rc.12",
     "next": "^15.3.5",
+    "openai": "^4.20.0",
     "pdf-parse": "^1.1.1",
     "react": "^18",
     "react-dom": "^18"

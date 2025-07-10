@@ -2,7 +2,7 @@ import axios from 'axios'
 import * as cheerio from 'cheerio'
 
 // API Version for debugging
-const API_VERSION = '2.3.0' // Updated for enhanced keyword detection
+const API_VERSION = '3.1.0' // Enhanced document detection with exclusions and top 5 recommendations
 console.log(`Company Research API v${API_VERSION} loaded`)
 
 // Anti-detection configuration
@@ -27,26 +27,347 @@ const CRAWL_CONFIG = {
   maxRedirects: 3
 }
 
-// Financial page keywords for intelligent navigation
+// Enhanced financial page keywords with better prioritization
 const FINANCIAL_KEYWORDS = [
-  // Direct financial terms
-  'investor relations', 'annual report', 'financial information', 
-  'financial statements', 'corporate governance', 'investor',
-  'annual-report', 'financials', 'reports', 'sec-filings',
-  'investor-relations', 'financial-info',
+  // HIGH PRIORITY - Annual Reports and Investor Relations (Priority 10)
+  'annual report', 'annual-report', 'investor relations', 'investor-relations',
+  'financial statements', 'financial-statements', 'corporate governance',
+  'asx announcements', 'asx-announcements', 'investor centre', 'investor-centre',
+  'quarterly results', 'half year results', 'full year results',
+  'earnings', 'financial results', 'investor information',
   
-  // Broader categories that often contain financial info
-  'about us', 'about-us', 'about', 'company-info',
-  'downloads', 'download', 'resources',
-  'reporting', 'reports', 'corporate-reports',
-  'publications', 'documents', 'media-centre',
-  'news-and-reports', 'corporate-information',
-  
-  // Specific report types
+  // MEDIUM PRIORITY - General Financial Info (Priority 8)
+  'financial information', 'financial-information', 'investor', 'financials',
+  'reports', 'corporate reports', 'corporate-reports', 'sec-filings',
   'sustainability report', 'esg report', 'corporate-responsibility',
-  'quarterly-results', 'half-year', 'full-year',
-  'earnings', 'results', 'performance'
+  'results and presentations', 'investor presentations',
+  
+  // LOWER PRIORITY - Broader Categories (Priority 6)
+  'about us', 'about-us', 'about', 'company-info',
+  'downloads', 'download', 'resources', 'publications', 'documents',
+  'media-centre', 'news-and-reports', 'corporate-information'
 ]
+
+// EXCLUDE these terms (financial hardship, customer support, etc.)
+const EXCLUDE_KEYWORDS = [
+  'financial hardship', 'financial-hardship', 'payment assistance',
+  'hardship policy', 'customer support', 'help', 'support',
+  'domestic violence', 'family violence', 'adversity',
+  'times of need', 'community support', 'customer assistance',
+  'billing help', 'payment help', 'financial difficulty'
+]
+
+// Common annual report URL patterns for major Australian companies (cleaned up)
+const ANNUAL_REPORT_URL_PATTERNS = [
+  '/annual-report',
+  '/investor-centre/annual-report',
+  '/investors/annual-report'
+]
+
+// Function to try common annual report URL patterns (with basic validation)
+async function tryCommonAnnualReportUrls(baseUrl) {
+  const foundReports = []
+  
+  for (const pattern of ANNUAL_REPORT_URL_PATTERNS) {
+    try {
+      const testUrl = new URL(pattern, baseUrl).toString()
+      console.log(`[URL_PATTERN] Trying: ${testUrl}`)
+      
+      // Try GET request with short timeout to validate content
+      const response = await axios.get(testUrl, {
+        timeout: 4000,
+        headers: CRAWL_CONFIG.headers,
+        maxRedirects: 2,
+        validateStatus: function (status) {
+          return status >= 200 && status < 400;
+        }
+      })
+      
+      if (response.status === 200) {
+        // Basic content validation
+        const content = response.data.toLowerCase()
+        const hasRelevantContent = (
+          content.includes('annual report') ||
+          content.includes('financial report') ||
+          content.includes('download') ||
+          content.includes('pdf') ||
+          (content.includes('investor') && content.length > 2000)
+        )
+        
+        // Check it's not a generic error page
+        const isValidPage = !content.includes('page not found') && 
+                           !content.includes('404') &&
+                           !content.includes('error') &&
+                           content.length > 1500
+        
+        if (hasRelevantContent && isValidPage) {
+          console.log(`[URL_PATTERN] Found valid annual report page: ${testUrl}`)
+          foundReports.push({
+            url: testUrl,
+            text: 'Annual Report Page (Verified)',
+            type: 'annual_report',
+            is_pdf: false,
+            is_document: false,
+            priority: 10,
+            relevance_score: 25,
+            document_type: 'Annual Report Page',
+            found_via: 'url_pattern',
+            likely_year: new Date().getFullYear(),
+            validation_level: 'content_verified'
+          })
+        } else {
+          console.log(`[URL_PATTERN] URL exists but lacks relevant content: ${testUrl}`)
+        }
+      }
+    } catch (error) {
+      console.log(`[URL_PATTERN] Pattern ${pattern} failed: ${error.message}`)
+    }
+  }
+  
+  return foundReports
+}
+
+// Enhanced function to crawl deeper into investor relations pages (optimized)
+async function crawlInvestorPages(financialLinks, baseUrl) {
+  const deepCrawlResults = []
+  const currentYear = new Date().getFullYear()
+  
+  // Find high-priority investor relations and annual report links to crawl deeper
+  const investorLinks = financialLinks.filter(link => 
+    (link.type === 'investor_relations' || link.type === 'annual_report') && 
+    link.priority >= 8 &&
+    !link.is_pdf // Only crawl web pages, not PDFs
+  ).slice(0, 2) // Reduced from 3 to 2 to prevent timeout
+  
+  console.log(`[DEEP_CRAWL] Found ${investorLinks.length} investor pages to crawl deeper`)
+  
+  for (const link of investorLinks) {
+    try {
+      console.log(`[DEEP_CRAWL] Crawling: ${link.url}`)
+      
+      // Reduced delay and timeout
+      await new Promise(resolve => setTimeout(resolve, 1000)) // 1 second instead of random delay
+      
+      const response = await axios.get(link.url, {
+        timeout: 6000, // Reduced from 8000
+        headers: CRAWL_CONFIG.headers,
+        maxRedirects: 2,
+        validateStatus: function (status) {
+          return status >= 200 && status < 400;
+        }
+      })
+      
+      const $ = cheerio.load(response.data)
+      
+      // Look for annual report specific links on this page
+      const annualReportLinks = []
+      
+      $('a[href]').each((i, element) => {
+        // Limit processing to first 50 links to prevent timeout
+        if (i > 50) return false
+        
+        const href = $(element).attr('href')
+        const linkText = $(element).text().toLowerCase().trim()
+        const title = $(element).attr('title')?.toLowerCase() || ''
+        
+        if (!href) return
+        
+        // Convert relative URLs to absolute
+        let fullUrl
+        try {
+          fullUrl = new URL(href, link.url).toString()
+        } catch (e) {
+          return
+        }
+        
+        const combinedText = `${linkText} ${title} ${href.toLowerCase()}`
+        
+        // Look specifically for annual reports with year mentions
+        const isAnnualReport = (
+          combinedText.includes('annual report') ||
+          combinedText.includes('annual-report') ||
+          (combinedText.includes('annual') && combinedText.includes('report')) ||
+          combinedText.includes('full year report') ||
+          combinedText.includes('integrated report')
+        )
+        
+        if (isAnnualReport) {
+          const isPdf = href.toLowerCase().includes('.pdf') || combinedText.includes('pdf')
+          const year = extractYearFromText(combinedText)
+          
+          let score = 10
+          if (year === currentYear) score += 20
+          else if (year === currentYear - 1) score += 15
+          else if (year === currentYear - 2) score += 10
+          if (isPdf) score += 10
+          
+          annualReportLinks.push({
+            url: fullUrl,
+            text: linkText || 'Annual Report',
+            type: 'annual_report',
+            is_pdf: isPdf,
+            is_document: isPdf,
+            title: title || null,
+            priority: 10,
+            relevance_score: score,
+            likely_year: year,
+            document_type: 'Annual Report',
+            source_page: link.url,
+            found_via: 'deep_crawl'
+          })
+        }
+      })
+      
+      // Add unique annual report links found (limit to top 5)
+      for (const arLink of annualReportLinks.slice(0, 5)) {
+        const exists = deepCrawlResults.find(existing => existing.url === arLink.url)
+        if (!exists) {
+          deepCrawlResults.push(arLink)
+          console.log(`[DEEP_CRAWL] Found annual report: ${arLink.text} (${arLink.likely_year}) - ${arLink.url}`)
+        }
+      }
+      
+    } catch (error) {
+      console.error(`[DEEP_CRAWL] Error crawling ${link.url}:`, error.message)
+    }
+  }
+  
+  console.log(`[DEEP_CRAWL] Found ${deepCrawlResults.length} additional annual reports via deep crawl`)
+  return deepCrawlResults
+}
+
+// Enhanced function to identify the most recent and relevant financial documents
+// Enhanced function to identify the top 5 most relevant financial documents with recommendations
+function identifyRecentFinancialDocuments(financialLinks) {
+  const currentYear = new Date().getFullYear()
+  const lastYear = currentYear - 1
+  
+  console.log(`[RECENT_DOCS] Analyzing ${financialLinks.length} financial links`)
+  
+  // Score each document based on multiple factors
+  const scoredDocuments = financialLinks.map(link => {
+    let score = link.priority || 1
+    
+    // MAJOR BOOST for annual reports
+    if (link.type === 'annual_report') {
+      score += 20
+    } else if (link.type === 'investor_relations') {
+      score += 15
+    } else if (link.type === 'financial_statements' || link.type === 'financial_results') {
+      score += 12
+    }
+    
+    // BOOST for current/recent years
+    const yearMatch = link.text?.match(/20\d{2}/) || link.url?.match(/20\d{2}/)
+    if (yearMatch) {
+      const year = parseInt(yearMatch[0])
+      if (year === currentYear) score += 15
+      else if (year === lastYear) score += 10
+      else if (year >= currentYear - 2) score += 5
+      link.likely_year = year
+    }
+    
+    // BOOST for PDFs (more likely to be complete reports)
+    if (link.is_pdf) {
+      score += 8
+    } else if (link.is_document) {
+      score += 5
+    }
+    
+    // BOOST for specific high-value keywords
+    const text = (link.text + ' ' + link.url).toLowerCase()
+    if (text.includes('annual report')) score += 10
+    if (text.includes('investor centre') || text.includes('investor relations')) score += 8
+    if (text.includes('financial statements')) score += 8
+    if (text.includes('asx announcements')) score += 6
+    if (text.includes('quarterly') || text.includes('half year') || text.includes('full year')) score += 5
+    
+    // PENALTY for very generic or low-value links
+    if (text.includes('contact') || text.includes('help') || text.includes('support')) score -= 5
+    if (link.type === 'about_company' && !text.includes('report')) score -= 3
+    
+    return {
+      ...link,
+      relevance_score: Math.max(score, 1) // Minimum score of 1
+    }
+  })
+  
+  // Sort by relevance score (highest first) and take top 5
+  const topDocuments = scoredDocuments
+    .sort((a, b) => b.relevance_score - a.relevance_score)
+    .slice(0, 5)
+  
+  // Add recommendation flags
+  const recommendedDocuments = topDocuments.map((doc, index) => {
+    let recommendation = 'Review'
+    let recommendationReason = ''
+    
+    if (index === 0 && doc.relevance_score >= 25) {
+      recommendation = 'RECOMMENDED'
+      recommendationReason = 'Highest relevance - likely contains comprehensive financial data'
+    } else if (doc.type === 'annual_report' && doc.is_pdf) {
+      recommendation = 'HIGHLY RECOMMENDED'
+      recommendationReason = 'Annual report PDF - contains complete financial statements'
+    } else if (doc.type === 'annual_report') {
+      recommendation = 'RECOMMENDED'
+      recommendationReason = 'Annual report page - may contain or link to financial statements'
+    } else if (doc.type === 'investor_relations' && doc.relevance_score >= 20) {
+      recommendation = 'RECOMMENDED'
+      recommendationReason = 'Investor relations - likely contains annual reports and financial data'
+    } else if (doc.relevance_score >= 15) {
+      recommendation = 'Consider'
+      recommendationReason = 'Good relevance score - may contain useful financial information'
+    }
+    
+    return {
+      ...doc,
+      recommendation,
+      recommendation_reason: recommendationReason,
+      rank: index + 1
+    }
+  })
+  
+  console.log(`[RECENT_DOCS] Top 5 documents identified:`)
+  recommendedDocuments.forEach(doc => {
+    console.log(`  ${doc.rank}. ${doc.text} (Score: ${doc.relevance_score}, ${doc.recommendation})`)
+  })
+  
+  return recommendedDocuments
+}
+
+// Helper function to extract year from document text/URL
+function extractYearFromText(text) {
+  const currentYear = new Date().getFullYear()
+  const yearMatches = text.match(/20\d{2}/g)
+  
+  if (yearMatches) {
+    // Return the most recent year found
+    const years = yearMatches.map(y => parseInt(y)).filter(y => y >= 2020 && y <= currentYear + 1)
+    return years.length > 0 ? Math.max(...years) : null
+  }
+  
+  // Check for FY notation (e.g., FY24, FY2024)
+  const fyMatch = text.match(/fy\s?(\d{2,4})/i)
+  if (fyMatch) {
+    let year = parseInt(fyMatch[1])
+    if (year < 100) year += 2000 // Convert FY24 to 2024
+    return year
+  }
+  
+  return null
+}
+
+// Helper function to classify document type
+function classifyDocumentType(text) {
+  if (text.includes('annual report')) return 'Annual Report'
+  if (text.includes('full year') && text.includes('result')) return 'Full Year Results'
+  if (text.includes('half year') || text.includes('interim')) return 'Interim Report'
+  if (text.includes('quarterly')) return 'Quarterly Report'
+  if (text.includes('sustainability') || text.includes('esg')) return 'Sustainability Report'
+  if (text.includes('investor') && text.includes('presentation')) return 'Investor Presentation'
+  if (text.includes('financial statement')) return 'Financial Statements'
+  return 'Financial Document'
+}
 
 // Function to find financial-related links on a page
 function findFinancialLinks($, baseUrl) {
@@ -70,46 +391,80 @@ function findFinancialLinks($, baseUrl) {
     
     // Check if link text or URL contains financial keywords
     const combinedText = `${linkText} ${title} ${href.toLowerCase()}`
+    
+    // EXCLUDE unwanted links first (financial hardship, customer support, etc.)
+    const isExcluded = EXCLUDE_KEYWORDS.some(keyword => 
+      combinedText.includes(keyword)
+    )
+    
+    if (isExcluded) {
+      console.log(`[EXCLUDE] Skipping excluded link: ${linkText}`)
+      return // Skip this link
+    }
+    
+    // Check for financial keywords
     const isFinancialLink = FINANCIAL_KEYWORDS.some(keyword => 
       combinedText.includes(keyword)
     )
     
     if (isFinancialLink) {
-      // Determine link type with more specific categorization
+      // Enhanced link type categorization with better priority
       let linkType = 'general'
+      let priority = 1
       
+      // HIGH PRIORITY - Annual Reports and Core Investor Relations
       if (combinedText.includes('annual report') || combinedText.includes('annual-report')) {
         linkType = 'annual_report'
+        priority = 10
+      } else if (combinedText.includes('investor relations') || combinedText.includes('investor-relations') || 
+                 combinedText.includes('investor centre') || combinedText.includes('investor-centre')) {
+        linkType = 'investor_relations'
+        priority = 9
+      } else if (combinedText.includes('financial statements') || combinedText.includes('financial-statements') ||
+                 combinedText.includes('asx announcements') || combinedText.includes('asx-announcements')) {
+        linkType = 'financial_statements'
+        priority = 9
+      } else if (combinedText.includes('quarterly results') || combinedText.includes('half year') || 
+                 combinedText.includes('full year') || combinedText.includes('earnings')) {
+        linkType = 'financial_results'
+        priority = 8
+      }
+      
+      // MEDIUM PRIORITY - General Financial Info
+      else if (combinedText.includes('financial') && !combinedText.includes('hardship')) {
+        linkType = 'financial_info'
+        priority = 8
       } else if (combinedText.includes('investor') && !combinedText.includes('individual')) {
         linkType = 'investor_relations'
-      } else if (combinedText.includes('financial') || combinedText.includes('earnings') || combinedText.includes('results')) {
-        linkType = 'financial_info'
-      } else if (combinedText.includes('about') || combinedText.includes('company')) {
-        linkType = 'about_company'
+        priority = 7
+      } else if (combinedText.includes('corporate governance') || combinedText.includes('governance')) {
+        linkType = 'governance'
+        priority = 7
+      } else if (combinedText.includes('sustainability report') || combinedText.includes('esg report')) {
+        linkType = 'sustainability'
+        priority = 6
+      }
+      
+      // LOWER PRIORITY - General Categories
+      else if (combinedText.includes('report') || combinedText.includes('reporting')) {
+        linkType = 'reports'
+        priority = 6
       } else if (combinedText.includes('download') || combinedText.includes('resources') || combinedText.includes('documents')) {
         linkType = 'downloads'
-      } else if (combinedText.includes('report') || combinedText.includes('reporting')) {
-        linkType = 'reports'
-      } else if (combinedText.includes('sustainability') || combinedText.includes('esg') || combinedText.includes('responsibility')) {
-        linkType = 'sustainability'
-      } else if (combinedText.includes('governance')) {
-        linkType = 'governance'
+        priority = 6
+      } else if (combinedText.includes('about') || combinedText.includes('company')) {
+        linkType = 'about_company'
+        priority = 5
       }
       
       // Check if it's a PDF or other document format
       const isPdf = href.toLowerCase().includes('.pdf') || combinedText.includes('pdf')
       const isDoc = href.toLowerCase().match(/\.(doc|docx|xls|xlsx|ppt|pptx)/) || combinedText.match(/(doc|excel|powerpoint)/i)
       
-      // Priority scoring - prioritize more relevant links
-      let priority = 1
-      if (linkType === 'annual_report') priority = 10
-      else if (linkType === 'investor_relations') priority = 9
-      else if (linkType === 'financial_info') priority = 8
-      else if (linkType === 'reports') priority = 7
-      else if (linkType === 'downloads') priority = 6
-      else if (linkType === 'about_company') priority = 5
-      
-      // Boost priority for PDFs (likely to contain detailed financial data)
+      // BOOST priority for documents (especially PDFs) as they're more likely to contain detailed data
+      if (isPdf && linkType === 'annual_report') priority = 10 // Keep max priority
+      else if (isPdf) priority = Math.min(priority + 2, 10) // Boost other PDFs
+      else if (isDoc) priority = Math.min(priority + 1, 10) // Slight boost for other docs
       if (isPdf) priority += 2
       
       financialLinks.push({
@@ -175,79 +530,44 @@ function rateLimit(ip) {
 }
 
 // Simplified web search using multiple strategies
+// Simplified web search using dynamic approach only (no static database)
 async function findCompanyWebsite(companyName) {
   console.log(`[DEBUG] Finding website for: "${companyName}"`)
   
-  // Enhanced known companies database with more variations
-  const knownCompanies = {
-    // Commonwealth Bank variations
-    'commonwealth bank': 'https://www.commbank.com.au',
-    'commonwealth bank australia': 'https://www.commbank.com.au',
-    'commonwealth bank of australia': 'https://www.commbank.com.au',
-    'cba': 'https://www.commbank.com.au',
-    'commbank': 'https://www.commbank.com.au',
-    'comm bank': 'https://www.commbank.com.au',
-    
-    // Other major Australian companies
-    'westpac': 'https://www.westpac.com.au',
-    'westpac bank': 'https://www.westpac.com.au',
-    'westpac banking corporation': 'https://www.westpac.com.au',
-    'anz': 'https://www.anz.com.au',
-    'anz bank': 'https://www.anz.com.au',
-    'australia and new zealand banking group': 'https://www.anz.com.au',
-    'nab': 'https://www.nab.com.au',
-    'national australia bank': 'https://www.nab.com.au',
-    'telstra': 'https://www.telstra.com.au',
-    'telstra corporation': 'https://www.telstra.com.au',
-    'woolworths': 'https://www.woolworthsgroup.com.au',
-    'woolworths group': 'https://www.woolworthsgroup.com.au',
-    'coles': 'https://www.colesgroup.com.au',
-    'coles group': 'https://www.colesgroup.com.au',
-    'bhp': 'https://www.bhp.com',
-    'bhp group': 'https://www.bhp.com',
-    'rio tinto': 'https://www.riotinto.com',
-    'qantas': 'https://www.qantas.com',
-    'qantas airways': 'https://www.qantas.com',
-    'australian military bank': 'https://www.australianmilitarybank.com.au',
-    'defence bank': 'https://www.defencebank.com.au',
-    'suncorp': 'https://www.suncorp.com.au',
-    'medibank': 'https://www.medibank.com.au',
-    'harvey norman': 'https://www.harveynorman.com.au',
-    'jb hi-fi': 'https://www.jbhifi.com.au',
-    'bunnings': 'https://www.bunnings.com.au',
-    'kmart': 'https://www.kmart.com.au',
-    'target australia': 'https://www.target.com.au',
-    'myer': 'https://www.myer.com.au',
-    'david jones': 'https://www.davidjones.com'
+  // Enhanced company name cleaning for search
+  function cleanCompanyName(name) {
+    return name.toLowerCase()
+      .trim()
+      // Remove common suffixes that might confuse search
+      .replace(/\s*\(australia\)$/i, '')
+      .replace(/\s*\(aus\)$/i, '')
+      .replace(/\s*australia$/i, '')
+      .trim()
   }
   
-  const cleanName = companyName.toLowerCase().trim()
-  console.log(`[DEBUG] Clean name: "${cleanName}"`)
+  const cleanName = cleanCompanyName(companyName)
+  const originalCleanName = companyName.toLowerCase().trim()
   
-  // Direct match
-  if (knownCompanies[cleanName]) {
-    console.log(`[DEBUG] Direct match found for: ${companyName} -> ${knownCompanies[cleanName]}`)
-    return knownCompanies[cleanName]
-  }
+  console.log(`[DEBUG] Original: "${companyName}"`)
+  console.log(`[DEBUG] Clean name for search: "${cleanName}"`)
   
-  // Partial match
-  for (const [key, url] of Object.entries(knownCompanies)) {
-    if (cleanName.includes(key) || key.includes(cleanName)) {
-      console.log(`[DEBUG] Partial match found: "${key}" for "${companyName}" -> ${url}`)
-      return url
-    }
-  }
-  
-  console.log(`[DEBUG] No database match found, trying intelligent URL construction`)
-  
-  // Try intelligent URL construction
-  const intelligentUrl = await constructIntelligentUrl(companyName)
+  // Try intelligent URL construction with cleaned name
+  let intelligentUrl = await constructIntelligentUrl(cleanName)
   if (intelligentUrl) {
     console.log(`[DEBUG] Intelligent URL found: ${intelligentUrl}`)
     return intelligentUrl
   }
   
-  // Final fallback
+  // Try with original name if cleaned version failed
+  if (cleanName !== originalCleanName) {
+    intelligentUrl = await constructIntelligentUrl(originalCleanName)
+    if (intelligentUrl) {
+      console.log(`[DEBUG] Intelligent URL found with original: ${intelligentUrl}`)
+      return intelligentUrl
+    }
+  }
+  
+  // Final fallback using cleaned name
   console.log(`[DEBUG] Using fallback URL construction for: ${companyName}`)
   const simpleName = cleanName
     .replace(/\s+/g, '')
@@ -321,8 +641,8 @@ async function scrapeWebsite(url) {
   try {
     console.log(`[CRAWL] Starting scrape: ${url}`)
     
-    // Add random delay before request
-    await randomDelay()
+    // Add random delay before request to appear more human-like
+    await randomDelay(1000) // 1-2 second delay
     
     const response = await axios.get(url, {
       timeout: CRAWL_CONFIG.timeout,
@@ -358,8 +678,20 @@ async function scrapeWebsite(url) {
 
     // NEW: Find financial-related links
     const financialLinks = findFinancialLinks($, url)
+    
+    // NEW: Try common annual report URL patterns
+    const urlPatternResults = await tryCommonAnnualReportUrls(url)
+    
+    // NEW: Deep crawl investor relations pages to find annual reports
+    const deepCrawlResults = await crawlInvestorPages([...financialLinks, ...urlPatternResults], url)
+    
+    // Combine all results
+    const allFinancialLinks = [...financialLinks, ...urlPatternResults, ...deepCrawlResults]
+    
+    // NEW: Identify the most recent and relevant financial documents
+    const recentDocuments = identifyRecentFinancialDocuments(allFinancialLinks)
 
-    console.log(`[CRAWL] Extracted from ${url}: title="${title}", emails=${emails.length}, phones=${phones.length}, financial_links=${financialLinks.length}`)
+    console.log(`[CRAWL] Extracted from ${url}: title="${title}", emails=${emails.length}, phones=${phones.length}, financial_links=${financialLinks.length}, url_patterns=${urlPatternResults.length}, deep_crawl=${deepCrawlResults.length}, recent_docs=${recentDocuments.length}`)
 
     return {
       url,
@@ -369,7 +701,10 @@ async function scrapeWebsite(url) {
         emails: emails.slice(0, 3),
         phones: phones.slice(0, 3)
       },
-      financial_links: financialLinks,
+      financial_links: allFinancialLinks, // Include all results
+      recent_financial_documents: recentDocuments, // NEW: Prioritized recent documents
+      deep_crawl_results: deepCrawlResults, // NEW: What was found via deep crawl
+      url_pattern_results: urlPatternResults, // NEW: What was found via URL patterns
       status: 'success'
     }
   } catch (error) {
@@ -535,6 +870,7 @@ export default async function handler(req, res) {
         results.data = {
           website: websiteData,
           financial_data: financialData,
+          recent_financial_documents: websiteData.recent_financial_documents || [],
           organizational_data: {
             parent_company: {
               name: 'Independent', // Default assumption for MVP
@@ -543,6 +879,9 @@ export default async function handler(req, res) {
           },
           research_status: 'success',
           search_method: websiteUrl ? 'provided_url' : 'web_search',
+          next_step: websiteData.recent_financial_documents && websiteData.recent_financial_documents.length > 0 
+            ? 'document_selection_required' 
+            : 'complete',
           debug_info: {
             api_version: API_VERSION,
             target_url: targetUrl,
