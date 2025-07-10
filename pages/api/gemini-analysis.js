@@ -448,6 +448,19 @@ export default async function handler(req, res) {
         const sampledTokens = logTokenUsage('Intelligent Financial Sampling', documentText, `(score: ${bestScore}, location: ${bestLocation}%)`)
         console.log(`[TOKEN MONITOR] Reduced from ${originalTokens} to ${sampledTokens} tokens (${Math.round((1-sampledTokens/originalTokens)*100)}% reduction)`)
         console.log(`[FINANCIAL FOCUS] Best financial section found at ${bestLocation}% through document with score: ${bestScore}`)
+        
+        // DEBUG: Log what financial patterns were found in the selected section
+        const debugPatterns = bestFinancialSection.toLowerCase()
+        const foundPatterns = []
+        if (debugPatterns.includes('total assets')) foundPatterns.push('total assets')
+        if (debugPatterns.includes('statement of financial position')) foundPatterns.push('statement of financial position')
+        if (debugPatterns.includes('balance sheet')) foundPatterns.push('balance sheet')
+        if (debugPatterns.includes('consolidated statement')) foundPatterns.push('consolidated statement')
+        console.log(`[FINANCIAL DEBUG] Patterns found in selected section: ${foundPatterns.join(', ') || 'none'}`)
+        
+        // DEBUG: Log a sample of the selected financial section
+        const sampleText = bestFinancialSection.substring(0, 500).replace(/\s+/g, ' ')
+        console.log(`[FINANCIAL SAMPLE] First 500 chars of selected section: "${sampleText}..."`)
       }
     } else if (documentText.length > 80000) {
       // For moderately large documents, still apply some limits
