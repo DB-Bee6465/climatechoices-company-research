@@ -5,6 +5,12 @@
     },
     "pages/api/debug-research.js": {
       "maxDuration": 10
+    },
+    "pages/api/debug-cba.js": {
+      "maxDuration": 60
+    },
+    "pages/api/gemini-analysis.js": {
+      "maxDuration": 30
     }
   },
   "headers": [
