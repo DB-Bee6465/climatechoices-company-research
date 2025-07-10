@@ -41,26 +41,29 @@ function checkRateLimit(clientId) {
   return true // Request allowed
 }
 
-// Enhanced ASRS analysis prompt with expert financial statements knowledge
+// Enhanced ASRS analysis prompt with intelligent financial statements analysis
 const ENHANCED_ASRS_PROMPT = `You are a CHARTERED ACCOUNTANT and FINANCIAL REPORTING EXPERT with deep expertise in:
 - Australian Accounting Standards (AASB)
 - International Financial Reporting Standards (IFRS)
-- Corporate annual report structures and financial statement formats
-- Balance sheet analysis and asset classification
-- Income statement interpretation and revenue recognition
+- Corporate annual report structures and financial statement formats across ALL industries
+- Balance sheet analysis and asset classification for any company type
+- Income statement interpretation and revenue recognition across sectors
 
 You specialize in analyzing Australian company annual reports for ASRS (Australian Sustainability Reporting Standards) compliance under AASB S1 and AASB S2 (September 2024).
 
-FINANCIAL STATEMENTS EXPERTISE:
-You understand that Australian company annual reports typically contain:
-- Financial Highlights (pages 1-20)
-- Directors' Report (pages 20-50)
-- Financial Statements (pages 80-200), including:
-  * Consolidated Statement of Comprehensive Income (Income Statement)
-  * Consolidated Statement of Financial Position (Balance Sheet)
-  * Consolidated Statement of Changes in Equity
-  * Consolidated Statement of Cash Flows
-  * Notes to the Financial Statements
+CORE FINANCIAL ANALYSIS PRINCIPLES:
+You understand that Australian company annual reports follow standardized formats regardless of industry:
+- Financial statements are prepared under AASB/IFRS standards
+- Consolidated figures take precedence over parent company standalone figures
+- Balance sheets show assets, liabilities, and equity in standardized formats
+- Income statements show revenue, expenses, and profit in standardized formats
+
+INTELLIGENT DOCUMENT ANALYSIS APPROACH:
+1. **ADAPT TO DOCUMENT STRUCTURE**: Each annual report has unique pagination and layout
+2. **RECOGNIZE FINANCIAL STATEMENT PATTERNS**: Look for standard AASB/IFRS statement formats
+3. **UNDERSTAND INDUSTRY CONTEXT**: Banks, retailers, miners, etc. have different asset structures but follow same reporting standards
+4. **SCALE AWARENESS**: Automatically detect if figures are in thousands, millions, or billions
+5. **TERMINOLOGY FLEXIBILITY**: Recognize equivalent terms across different companies
 
 ASRS CLASSIFICATION CRITERIA (AASB S1 & S2 - September 2024):
 Group 1 (Report from 1 January 2025): Companies meeting 2+ of:
@@ -78,26 +81,74 @@ Group 3 (Report from 1 January 2027): Companies meeting 2+ of:
 - Total assets $25M-$500M
 - 100-250 employees
 
-STEP 1: DATA EXTRACTION PHASE
+INTELLIGENT DATA EXTRACTION METHODOLOGY:
 
-1. **REVENUE DATA** - As a financial expert, look for:
-   - Consolidated Statement of Comprehensive Income / Income Statement
-   - Revenue terminology: "Total Revenue", "Operating Income", "Total Income", "Revenue from operations", "Net Interest Income" (for banks)
-   - Search both Financial Highlights AND detailed financial statements
-   - REQUIRED: Specify exact line item name and page number
+1. **REVENUE ANALYSIS** - Apply professional judgment:
+   - Identify the PRIMARY revenue line in the income statement
+   - For most companies: "Revenue", "Total Revenue", "Sales Revenue"
+   - For banks/financial: "Net Interest Income" + "Other Operating Income" = Total Operating Income
+   - For utilities: "Revenue from operations"
+   - For mining: "Sales revenue" or "Revenue from sales"
+   - ALWAYS use the TOP LINE revenue figure that represents the company's main business
+   - Cross-reference with financial highlights for validation
 
-2. **TOTAL ASSETS** - CRITICAL - As a balance sheet expert, search for:
+2. **TOTAL ASSETS ANALYSIS** - Apply balance sheet expertise:
    
-   **PRIMARY SEARCH LOCATIONS:**
-   - "Consolidated Statement of Financial Position" (most common in Australia)
-   - "Consolidated Balance Sheet" 
-   - "Statement of Financial Position"
-   - Typically pages 100-200 in annual reports
+   **INTELLIGENT SEARCH METHODOLOGY:**
+   - Locate the "Statement of Financial Position" or "Balance Sheet"
+   - Understand this is typically the LARGEST section of financial statements
+   - Look for the FINAL LINE of the Assets section (this is always "Total Assets")
+   - Recognize that assets are presented in two main categories:
+     * Current Assets (cash, receivables, inventory, etc.)
+     * Non-Current Assets (property, equipment, investments, etc.)
+   - The "Total Assets" line is the SUM of these categories
    
-   **EXACT TERMINOLOGY TO FIND:**
-   - "Total Assets" (most common)
+   **ADAPTIVE TERMINOLOGY RECOGNITION:**
+   - "Total Assets" (most common across all industries)
    - "Total Current and Non-Current Assets"
-   - "Total Assets and Right-of-Use Assets"
+   - "Assets" (when it's clearly the total line)
+   - Recognize tabular format where numbers align in columns
+   
+   **PROFESSIONAL VALIDATION:**
+   - Ensure the figure makes sense for the company size and industry
+   - Banks: Typically hundreds of billions to over $1 trillion
+   - Large retailers: Typically tens of billions
+   - Mining companies: Varies widely based on asset intensity
+   - Cross-reference with any financial highlights or CEO commentary
+
+3. **EMPLOYEE COUNT ANALYSIS** - Apply comprehensive search:
+   - Search throughout the entire document, not just specific sections
+   - Look for: "employees", "workforce", "staff", "FTE", "headcount"
+   - Check: Financial highlights, CEO letter, Our People sections, Directors' Report
+   - Accept ranges (e.g., "50,000+" employees) and use conservative estimates
+
+CRITICAL SUCCESS FACTORS:
+
+**DOCUMENT COMPREHENSION:**
+- Read and analyze the ENTIRE provided document content
+- Don't assume standard page numbers - adapt to the actual document structure
+- Look for financial statement headers and table structures
+- Understand that financial data appears in tabular format with aligned numbers
+
+**PROFESSIONAL SKEPTICISM:**
+- If a figure seems unusually high/low for the company, double-check your analysis
+- Ensure you're reading consolidated (group) figures, not subsidiary figures
+- Verify currency (should be AUD for Australian companies)
+- Check the scale notation and convert to actual dollar amounts
+
+**CONFIDENCE CALIBRATION:**
+- High confidence (8-10): Found in audited financial statements with clear line items
+- Medium confidence (5-7): Found in financial highlights with reasonable certainty
+- Low confidence (1-4): Inferred or uncertain data
+- Zero confidence (0): Cannot locate the data in the provided content
+
+**QUALITY ASSURANCE QUESTIONS:**
+Before finalizing each metric, ask yourself:
+1. "Did I find this in the actual financial statements or just narrative text?"
+2. "Is this the consolidated figure for the entire group?"
+3. "Does this figure make business sense for a company of this type and size?"
+4. "Am I reading the current year column, not prior year comparatives?"
+5. "Have I correctly interpreted the scale (thousands/millions/billions)?"
    - "Assets Total"
    - "Total Group Assets"
    - "Total Consolidated Assets"
@@ -315,20 +366,88 @@ export default async function handler(req, res) {
     const MAX_CHARS = MAX_TOKENS * 4 // ~160,000 characters
     
     if (originalTokens > MAX_TOKENS) {
-      console.log(`[TOKEN MONITOR] Document exceeds ${MAX_TOKENS} token limit, applying intelligent sampling`)
+      console.log(`[TOKEN MONITOR] Document exceeds ${MAX_TOKENS} token limit, applying INTELLIGENT financial statements sampling`)
       
       if (documentText.length > MAX_CHARS) {
-        // Intelligent sampling with token awareness
-        const firstPart = documentText.substring(0, Math.floor(MAX_CHARS * 0.4)) // 40% for intro
-        const middleStart = Math.floor(documentText.length * 0.4) // Start at 40% through document
-        const middlePart = documentText.substring(middleStart, middleStart + Math.floor(MAX_CHARS * 0.4)) // 40% for financial statements
-        const lastPart = documentText.substring(documentText.length - Math.floor(MAX_CHARS * 0.2)) // 20% for notes
+        // INTELLIGENT: Pattern-based financial statements detection
+        const firstPart = documentText.substring(0, Math.floor(MAX_CHARS * 0.25)) // 25% for intro/highlights
         
-        documentText = firstPart + '\n\n[... MIDDLE SECTION SAMPLED FOR TOKEN EFFICIENCY ...]\n\n' + 
-                      middlePart + '\n\n[... END SECTION SAMPLED FOR TOKEN EFFICIENCY ...]\n\n' + lastPart
+        // ADAPTIVE: Search for financial statements using pattern recognition
+        const financialPatterns = [
+          /consolidated statement of financial position/i,
+          /statement of financial position/i,
+          /consolidated balance sheet/i,
+          /balance sheet/i,
+          /consolidated statement of comprehensive income/i,
+          /statement of comprehensive income/i,
+          /consolidated income statement/i,
+          /income statement/i,
+          /total assets/i,
+          /total revenue/i,
+          /operating income/i,
+          /\$[0-9,]+[mb]?\s*(million|billion)?/i // Financial figures pattern
+        ]
         
-        const sampledTokens = logTokenUsage('Intelligent Sampling', documentText, '(token-optimized)')
+        // INTELLIGENT: Score document sections based on financial content density
+        let bestFinancialSection = ''
+        let bestScore = 0
+        let bestLocation = 0
+        
+        const chunkSize = Math.floor(MAX_CHARS * 0.5) // 50% allocation for financial statements
+        const stepSize = Math.floor(chunkSize / 8) // Overlap chunks for better coverage
+        
+        for (let i = Math.floor(documentText.length * 0.1); i < documentText.length * 0.9; i += stepSize) {
+          const chunk = documentText.substring(i, i + chunkSize)
+          
+          let score = 0
+          let patternMatches = 0
+          
+          // Score based on financial statement patterns
+          financialPatterns.forEach(pattern => {
+            const matches = (chunk.match(pattern) || []).length
+            if (matches > 0) {
+              patternMatches++
+              // Weight different patterns by importance
+              if (pattern.source.includes('total assets')) score += matches * 15
+              else if (pattern.source.includes('statement of financial position')) score += matches * 10
+              else if (pattern.source.includes('balance sheet')) score += matches * 10
+              else if (pattern.source.includes('total revenue')) score += matches * 8
+              else if (pattern.source.includes('income statement')) score += matches * 6
+              else score += matches * 3
+            }
+          })
+          
+          // Bonus for sections with multiple financial patterns (likely financial statements)
+          if (patternMatches >= 3) score += 20
+          if (patternMatches >= 5) score += 40
+          
+          // Look for tabular data patterns (financial statements are tables)
+          const tabularPatterns = chunk.match(/\n\s*[A-Za-z][^0-9\n]*\s+[\d,]+/g) || []
+          score += tabularPatterns.length * 2
+          
+          if (score > bestScore) {
+            bestScore = score
+            bestFinancialSection = chunk
+            bestLocation = Math.round((i / documentText.length) * 100)
+          }
+        }
+        
+        // FALLBACK: If no strong financial section found, use middle section
+        if (bestScore < 10) {
+          const middleStart = Math.floor(documentText.length * 0.4)
+          bestFinancialSection = documentText.substring(middleStart, middleStart + Math.floor(MAX_CHARS * 0.5))
+          bestLocation = 40
+          console.log(`[FINANCIAL FOCUS] Low financial content detected, using middle section fallback`)
+        }
+        
+        const lastPart = documentText.substring(documentText.length - Math.floor(MAX_CHARS * 0.25)) // 25% for notes
+        
+        documentText = firstPart + '\n\n[... FINANCIAL STATEMENTS SECTION IDENTIFIED AND PRIORITIZED ...]\n\n' + 
+                      bestFinancialSection + '\n\n[... END SECTION SAMPLED FOR TOKEN EFFICIENCY ...]\n\n' + lastPart
+        
+        const sampledTokens = logTokenUsage('Intelligent Financial Sampling', documentText, `(score: ${bestScore}, location: ${bestLocation}%)`)
         console.log(`[TOKEN MONITOR] Reduced from ${originalTokens} to ${sampledTokens} tokens (${Math.round((1-sampledTokens/originalTokens)*100)}% reduction)`)
+        console.log(`[FINANCIAL FOCUS] Best financial section found at ${bestLocation}% through document with score: ${bestScore}`)
       }
     } else if (documentText.length > 80000) {
       // For moderately large documents, still apply some limits
