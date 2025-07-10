@@ -3,6 +3,7 @@ import Link from 'next/link'
 import { useState } from 'react'
 import axios from 'axios'
 
+// Debug page for Commonwealth Bank Total Assets analysis - Updated 2025-07-11
 export default function DebugCBA() {
   const [loading, setLoading] = useState(false)
   const [results, setResults] = useState(null)
