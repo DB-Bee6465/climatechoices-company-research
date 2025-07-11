@@ -87,14 +87,14 @@ export default function Research() {
               <h1 className="text-2xl font-bold text-gray-900">Climate Choices</h1>
               <span className="ml-2 text-sm text-gray-500">Company Research</span>
             </Link>
-            <nav className="hidden md:flex space-x-8">
-              <Link href="/" className="text-gray-700 hover:text-blue-600">
+            <nav className="flex space-x-4 md:space-x-8">
+              <Link href="/" className="text-gray-700 hover:text-blue-600 text-sm md:text-base">
                 Home
               </Link>
-              <Link href="/about" className="text-gray-700 hover:text-blue-600">
+              <Link href="/about" className="text-gray-700 hover:text-blue-600 text-sm md:text-base">
                 About
               </Link>
-              <Link href="/debug-cba" className="text-blue-600 hover:text-blue-700 font-medium">
+              <Link href="/debug-cba" className="text-blue-600 hover:text-blue-700 font-medium text-sm md:text-base">
                 🔍 Debug CBA
               </Link>
             </nav>
@@ -493,6 +493,29 @@ export default function Research() {
                             <p>3. Future enhancement: Select document for automated analysis</p>
                           </div>
                         </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Debug Tools Section */}
+                <div className="bg-blue-50 border border-blue-200 rounded-lg p-6 mt-6">
+                  <div className="flex">
+                    <div className="flex-shrink-0">
+                      <svg className="h-5 w-5 text-blue-400" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+                        <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
+                      </svg>
+                    </div>
+                    <div className="ml-3">
+                      <h3 className="text-sm font-medium text-blue-800">🔍 Debug Tools</h3>
+                      <div className="mt-2 text-sm text-blue-700">
+                        <p className="mb-2">For developers and advanced users:</p>
+                        <Link 
+                          href="/debug-cba" 
+                          className="inline-flex items-center px-3 py-2 border border-blue-300 shadow-sm text-sm leading-4 font-medium rounded-md text-blue-700 bg-white hover:bg-blue-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+                        >
+                          🔍 Debug Commonwealth Bank Analysis
+                        </Link>
                       </div>
                     </div>
                   </div>
