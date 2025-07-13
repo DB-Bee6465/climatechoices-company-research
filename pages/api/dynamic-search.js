@@ -64,13 +64,13 @@ export default async function handler(req, res) {
     let siteDomain = ''
     
     // First, try to extract from provided websiteUrl
-    if (websiteUrl && websiteUrl !== 'https://www.company.com.au' && !websiteUrl.includes('company.com.au')) {
+    if (websiteUrl && websiteUrl.trim() !== '') {
       try {
-        const url = new URL(websiteUrl)
+        const url = new URL(websiteUrl.startsWith('http') ? websiteUrl : `https://${websiteUrl}`)
         siteDomain = url.hostname.replace('www.', '')
         console.log(`Using provided domain: ${siteDomain}`)
       } catch (e) {
-        console.log('Could not parse provided website URL')
+        console.log(`Could not parse provided website URL: ${websiteUrl}`)
       }
     }
     
