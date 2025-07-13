@@ -74,64 +74,55 @@ export default async function handler(req, res) {
       }
     }
     
-    // If no valid domain provided, detect based on company name
+    // Dynamic approach - no domain required!
     if (!siteDomain) {
-      const companyLower = companyName.toLowerCase()
-      if (companyLower.includes('commonwealth bank')) {
-        siteDomain = 'commbank.com.au'
-      } else if (companyLower.includes('telstra')) {
-        siteDomain = 'telstra.com.au'
-      } else if (companyLower.includes('westpac')) {
-        siteDomain = 'westpac.com.au'
-      } else if (companyLower.includes('anz')) {
-        siteDomain = 'anz.com.au'
-      } else if (companyLower.includes('bhp')) {
-        siteDomain = 'bhp.com'
-      } else if (companyLower.includes('woolworths')) {
-        siteDomain = 'woolworthsgroup.com.au'
-      } else if (companyLower.includes('csl')) {
-        siteDomain = 'csl.com'
-      }
-      
-      if (siteDomain) {
-        console.log(`Auto-detected domain for ${companyName}: ${siteDomain}`)
-      } else {
-        console.log(`Could not auto-detect domain for ${companyName}`)
-      }
+      console.log(`No domain provided for ${companyName} - using dynamic web search approach`)
     }
 
-    // If we still don't have a domain, we can't do a reliable search
-    if (!siteDomain) {
-      return res.status(400).json({
-        error: 'Company domain required',
-        message: 'Please provide the company website URL, or use a recognized company name',
-        company_name: companyName
-      })
-    }
-
-    // Construct targeted search queries with STRICT site restrictions
+    // Construct intelligent search queries - dynamic approach
     let searchQueries = []
     
-    if (selectedYear) {
-      // If specific year selected, focus searches on that year only - OFFICIAL SITE ONLY
-      console.log(`Targeting specific year: ${selectedYear} on official domain: ${siteDomain}`)
-      searchQueries = [
-        `"${companyName}" annual report ${selectedYear} filetype:pdf site:${siteDomain}`,
-        `"${companyName}" ${selectedYear} annual report site:${siteDomain}`,
-        `annual report ${selectedYear} site:${siteDomain}`,
-        `financial statements ${selectedYear} site:${siteDomain}`,
-        `investor relations ${selectedYear} site:${siteDomain}`
-      ]
+    if (siteDomain) {
+      // If we have a domain, search that site specifically
+      if (selectedYear) {
+        console.log(`Targeting specific year: ${selectedYear} on official domain: ${siteDomain}`)
+        searchQueries = [
+          `"${companyName}" annual report ${selectedYear} filetype:pdf site:${siteDomain}`,
+          `"${companyName}" ${selectedYear} annual report site:${siteDomain}`,
+          `annual report ${selectedYear} site:${siteDomain}`,
+          `financial statements ${selectedYear} site:${siteDomain}`,
+          `investor relations ${selectedYear} site:${siteDomain}`
+        ]
+      } else {
+        console.log(`Searching all recent years on official domain: ${siteDomain}`)
+        searchQueries = [
+          `annual report 2024 filetype:pdf site:${siteDomain}`,
+          `annual report 2023 filetype:pdf site:${siteDomain}`,
+          `financial statements 2024 site:${siteDomain}`,
+          `investor relations site:${siteDomain}`,
+          `sustainability report 2024 site:${siteDomain}`
+        ]
+      }
     } else {
-      // If no specific year, search recent years - OFFICIAL SITE ONLY
-      console.log(`Searching all recent years on official domain: ${siteDomain}`)
-      searchQueries = [
-        `annual report 2024 filetype:pdf site:${siteDomain}`,
-        `annual report 2023 filetype:pdf site:${siteDomain}`,
-        `financial statements 2024 site:${siteDomain}`,
-        `investor relations site:${siteDomain}`,
-        `sustainability report 2024 site:${siteDomain}`
-      ]
+      // Dynamic web search - let Google find the company and their documents
+      if (selectedYear) {
+        console.log(`Dynamic search for ${companyName} targeting year: ${selectedYear}`)
+        searchQueries = [
+          `"${companyName}" annual report ${selectedYear} filetype:pdf australia`,
+          `"${companyName}" ${selectedYear} annual report investor relations`,
+          `"${companyName}" financial report ${selectedYear} australia`,
+          `"${companyName}" ${selectedYear} sustainability report australia`
+        ]
+      } else {
+        console.log(`Dynamic search for ${companyName} - all recent years`)
+        searchQueries = [
+          `"${companyName}" annual report filetype:pdf australia`,
+          `"${companyName}" annual report 2024 OR 2023 OR 2022 investor relations`,
+          `"${companyName}" financial statements australia annual report`,
+          `"${companyName}" investor relations annual report australia`,
+          `"${companyName}" sustainability report 2024 australia`
+        ]
+      }
     }
 
     console.log(`Executing ${searchQueries.length} dynamic searches...`)
