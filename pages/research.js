@@ -41,7 +41,21 @@ export default function Research() {
       setAnalysisResults(response.data)
     } catch (err) {
       console.error('Analysis error:', err)
-      setError(err.response?.data?.error || 'An error occurred during ASRS analysis')
+      
+      // Handle specific error types
+      let errorMessage = 'An error occurred during ASRS analysis'
+      
+      if (err.code === 'ERR_BAD_RESPONSE' && err.response?.status === 504) {
+        errorMessage = 'Analysis timeout - The document is large and taking longer than expected. Please try again or contact support.'
+      } else if (err.response?.status === 413) {
+        errorMessage = 'Document too large - Please try with a smaller document or contact support.'
+      } else if (err.response?.data?.error) {
+        errorMessage = err.response.data.error
+      } else if (err.message) {
+        errorMessage = `Analysis failed: ${err.message}`
+      }
+      
+      setError(errorMessage)
     } finally {
       setAnalysisLoading(false)
     }
