@@ -139,7 +139,7 @@ export default async function handler(req, res) {
     // Execute searches in parallel
     const searchPromises = searchQueries.map(async (query, index) => {
       try {
-        console.log(`Search ${index + 1}: ${query}`)
+        console.log(`[SERPAPI USAGE] Search ${index + 1}/${searchQueries.length}: ${query}`)
         
         const response = await axios.get('https://serpapi.com/search', {
           params: {
@@ -154,7 +154,7 @@ export default async function handler(req, res) {
         })
 
         const results = response.data.organic_results || []
-        console.log(`Search ${index + 1} found ${results.length} results`)
+        console.log(`[SERPAPI USAGE] Search ${index + 1} found ${results.length} results - Cost: ~$0.01`)
 
         return results.map(result => ({
           title: result.title,
@@ -375,9 +375,18 @@ export default async function handler(req, res) {
       filtered_results: financialDocuments.length,
       year_filter: selectedYear ? `Targeted search for ${selectedYear}` : 'All recent years (2024, 2023, 2022)',
       
+      // SerpAPI Usage Tracking
+      serpapi_usage: {
+        searches_this_request: searchQueries.length,
+        estimated_cost_this_request: `$${(searchQueries.length * 0.01).toFixed(2)}`,
+        cost_per_search: '$0.01',
+        free_tier_limit: '100 searches/month',
+        usage_note: 'Check actual usage at https://serpapi.com/dashboard'
+      },
+      
       // API info
       ai_provider: 'SerpAPI + Google Search',
-      cost: '$0.01 per search (approximate)',
+      cost: `$${(searchQueries.length * 0.01).toFixed(2)} (${searchQueries.length} searches)`,
       api_version: API_VERSION,
       rate_limit_info: {
         requests_remaining: RATE_LIMIT.maxRequests - (requestCounts.get(clientId)?.length || 0),
