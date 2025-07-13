@@ -140,7 +140,7 @@ export default function Research() {
                 autoComplete="url"
               />
               <p className="mt-1 text-sm text-gray-500">
-                If not provided, we'll try to find the company's website automatically
+                Leave blank for automatic website discovery via dynamic search
               </p>
             </div>
 
