@@ -95,7 +95,7 @@ export default function Research() {
                 About
               </Link>
               <Link href="/debug-cba" className="text-blue-600 hover:text-blue-700 font-medium text-sm md:text-base">
-                🔍 Debug CBA
+                🔍 Debug
               </Link>
             </nav>
           </div>
@@ -513,7 +513,7 @@ export default function Research() {
                             href="/debug-cba" 
                             className="inline-flex items-center px-3 py-2 border border-blue-300 shadow-sm text-sm leading-4 font-medium rounded-md text-blue-700 bg-white hover:bg-blue-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
                           >
-                            🔍 Debug Commonwealth Bank Analysis
+                            🔍 Debug Analysis
                           </Link>
                         </div>
                       </div>
