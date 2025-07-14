@@ -41,10 +41,10 @@ export default function DebugCBA() {
             ← Back to Home
           </Link>
           <h1 className="text-4xl font-bold text-gray-800 mb-2">
-            🔍 Commonwealth Bank Debug Analysis
+            🔍 Document Analysis Debug
           </h1>
           <p className="text-gray-600 max-w-2xl mx-auto">
-            Analyze Commonwealth Bank's 2024 Annual Report to understand why Total Assets extraction is failing
+            Analyze annual reports to understand document structure and data extraction effectiveness
           </p>
         </div>
 
@@ -53,7 +53,7 @@ export default function DebugCBA() {
           <div className="bg-white rounded-lg shadow-lg p-6">
             <h2 className="text-2xl font-semibold mb-4">Debug Analysis</h2>
             <p className="text-gray-600 mb-4">
-              This will download and analyze Commonwealth Bank's 2024 Annual Report to identify:
+              This will download and analyze annual reports to identify:
             </p>
             <ul className="list-disc list-inside text-gray-600 mb-6 space-y-1">
               <li>Where "Total Assets" appears in the document</li>
@@ -78,7 +78,7 @@ export default function DebugCBA() {
             <div className="bg-blue-50 border border-blue-200 rounded-lg p-6">
               <div className="flex items-center">
                 <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-600 mr-3"></div>
-                <span className="text-blue-800">Downloading and analyzing Commonwealth Bank annual report...</span>
+                <span className="text-blue-800">Downloading and analyzing annual report...</span>
               </div>
               <p className="text-blue-600 text-sm mt-2">This may take 30-60 seconds for the full PDF analysis</p>
             </div>
